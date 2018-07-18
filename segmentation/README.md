@@ -2,6 +2,17 @@
 
 <img src='../docs/result_seg.png' width=900/>  
 
+## Usage
+
+- train
+CUDA_VISIBLE_DEVICES=0 python adapt_trainer.py sim_robot real_robot --net drn_d_105
+
+- test
+CUDA_VISIBLE_DEVICES=0 python adapt_tester.py ./train_output/sim_robot-train2real_robot-train_3ch/pth/MCD-normal-drn_d_105-10.pth.tar
+
+- eval
+CUDA_VISIBLE_DEVICES=0 python eval.py city ./test_output/sim_robot-train2real_robot-train_3ch---real_robot-val/MCD-normal-drn_d_105-10.tar/label
+
 ***
 ## Installation
 Use **Python 2.x**

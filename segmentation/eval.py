@@ -225,7 +225,7 @@ def calc_all_metrics(class_list, pred_fullpath_list, gt_fullpath_list, consider_
 
 
 def eval_city(gt_dir, pred_dir, devkit_dir='', dset='cityscapes', add_bg_loss=False, is_label16=False):
-    import ipdb; ipdb.set_trace()
+
     if gt_dir == "":
         name_classes = ORIGINAL.keys()
         mapping = []
@@ -250,6 +250,7 @@ def eval_city(gt_dir, pred_dir, devkit_dir='', dset='cityscapes', add_bg_loss=Fa
     print("pred path: %s" % os.path.abspath(pred_dir))
     # image_path_list = join(devkit_dir, 'data', dset, 'image.txt')
     # label_path_list = join(devkit_dir, 'data', dset, 'label.txt')
+    pred_fullpath_list = []
     for split in ['train', 'val']:
         image_path_list = join(devkit_dir, split + '.txt')
         label_path_list = join(devkit_dir, split + '_label.txt')
@@ -271,6 +272,7 @@ def eval_city(gt_dir, pred_dir, devkit_dir='', dset='cityscapes', add_bg_loss=Fa
         #
         # calc_all_metrics(name_classes, pred_fullpath_list, gt_fullpath_list, consider_background_loss=add_bg_loss)
 
+        import ipdb; ipdb.set_trace()
         calc_all_metrics(name_classes, pred_fullpath_list, gt_imgs, consider_background_loss=add_bg_loss, out_dir=pred_dir+'/'+split, mapping_class_labels=mapping)
         # gt_imgs.close()
         # pred_img.close()
