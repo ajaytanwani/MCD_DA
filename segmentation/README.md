@@ -1,7 +1,5 @@
 # Maximum Classifier Discrepancy for Domain Adaptation with Semantic Segmentation Implemented by PyTorch
 
-<img src='../docs/result_seg.png' width=900/>  
-
 ## Usage
 
 - train
@@ -13,6 +11,12 @@ CUDA_VISIBLE_DEVICES=0 python adapt_tester.py ./train_output/sim_robot-train2rea
 - eval
 CUDA_VISIBLE_DEVICES=0 python eval.py city ./test_output/sim_robot-train2real_robot-train_3ch---real_robot-val/MCD-normal-drn_d_105-10.tar/label
 
+## Datasets
+- "sim_robot": "/home/ajaytanwani/datasets/sim2real_datasets/dataset_07_05_2018_2/"
+- "real_robot": "/home/ajaytanwani/datasets/uncluttered+cluttered_polygon/",
+
+***
+<img src='../docs/result_seg.png' width=900/>  
 ***
 ## Installation
 Use **Python 2.x**
