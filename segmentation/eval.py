@@ -17,10 +17,12 @@ from tqdm import tqdm
 
 import glob
 
+ORIGINAL = {"screwdriver":0, "tape":1, "tube":2, "scrap":3, "hammer":4, "wrench":5, "background":6}
 
 def fast_hist(a, b, n):
+    # import ipdb; ipdb.set_trace()
     k = (a >= 0) & (a < n)
-    return np.bincount(n * a[k].astype(int) + b[k], minlength=n ** 2).reshape(n, n)
+    return np.bincount(n * a[k].astype(int) + b[k], minlength=(n) ** 2).reshape(n, n)
 
 
 def per_class_iu(hist):
@@ -94,20 +96,23 @@ def plot_confusion_matrix(cm, classes,
 
 
 def calc_all_metrics(class_list, pred_fullpath_list, gt_fullpath_list, consider_background_loss=False,
-                     gt2common_mat=None, pred2common_mat=None, background_id=255, out_filename_prefix=""):
+                     gt2common_mat=None, pred2common_mat=None, background_id=255, out_filename_prefix="", out_dir="", mapping_class_labels=[]):
     pred_dir, _ = os.path.split(pred_fullpath_list[0])
-    gt_dir, _ = os.path.split(gt_fullpath_list[0])
-    out_dir = os.path.split(pred_dir)[0].replace("label", "")
+    if out_dir == "":
+        gt_dir, _ = os.path.split(gt_fullpath_list[0])
+        out_dir = os.path.split(pred_dir)[0].replace("label", "")
 
-    print("pred path: %s" % os.path.abspath(pred_dir))
+    print("output directory: %s" % os.path.abspath(out_dir))
 
     n_ignore_pic = 0
     n_class = len(class_list)
+    # n_class = 35
     hist = np.zeros((n_class, n_class))
 
     bg_mapping = np.array([
         [background_id, n_class - 1]
     ])
+
 
     for ind, (pred_fullpath, gt_fullpath) in tqdm(enumerate(zip(pred_fullpath_list, gt_fullpath_list))):
         pred = Image.open(pred_fullpath)
@@ -137,7 +142,8 @@ def calc_all_metrics(class_list, pred_fullpath_list, gt_fullpath_list, consider_
         hist += fast_hist(label.flatten(), pred.flatten(), n_class)
 
     print("*** %s *** images were ignored because it has no label" % n_ignore_pic)
-
+    # import ipdb;
+    # ipdb.set_trace()
     # Get label distribution
     pred_per_class = hist.sum(0)
     gt_per_class = hist.sum(1)
@@ -145,7 +151,7 @@ def calc_all_metrics(class_list, pred_fullpath_list, gt_fullpath_list, consider_
     used_class_id_list = np.where(gt_per_class != 0)[0]
     hist = hist[used_class_id_list][:, used_class_id_list]  # Extract only GT existing (more than 1) classes
 
-    class_list = np.array(class_list)[used_class_id_list]
+    # class_list = np.array(class_list)[used_class_id_list]
 
     iou_list = per_class_iu(hist)
     fwIoU = calc_fw_iu(hist)
@@ -153,7 +159,7 @@ def calc_all_metrics(class_list, pred_fullpath_list, gt_fullpath_list, consider_
     mAcc = calc_mean_accuracy(hist)
 
     result_df = pd.DataFrame({
-        'class': class_list,
+        'class': used_class_id_list, # class_list
         'IoU': iou_list,
         "pred_distribution": pred_per_class[used_class_id_list],
         "gt_distribution": gt_per_class[used_class_id_list],
@@ -176,6 +182,7 @@ def calc_all_metrics(class_list, pred_fullpath_list, gt_fullpath_list, consider_
     print("---- total result -----")
     print(result_ser)
 
+    import ipdb; ipdb.set_trace()
     sep_dir_list = os.path.abspath(pred_dir).split(os.path.sep)
     kind = sep_dir_list[-3]
     model_name = sep_dir_list[-2]
@@ -192,6 +199,8 @@ def calc_all_metrics(class_list, pred_fullpath_list, gt_fullpath_list, consider_
     print(result_str)
     print()
 
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
     try:
         # Save confusion matrix
         fig = plt.figure()
@@ -216,17 +225,20 @@ def calc_all_metrics(class_list, pred_fullpath_list, gt_fullpath_list, consider_
 
 
 def eval_city(gt_dir, pred_dir, devkit_dir='', dset='cityscapes', add_bg_loss=False, is_label16=False):
-    if is_label16:
+    import ipdb; ipdb.set_trace()
+    if gt_dir == "":
+        name_classes = ORIGINAL.keys()
+        mapping = []
+    elif is_label16:
         with open("./dataset/synthia2cityscapes_info.json", 'r') as fp:
             info = json.load(fp)
-    else:
-        with open(join(devkit_dir, 'data', dset, 'info.json'), 'r') as fp:
-            info = json.load(fp)
-
-    if is_label16:
         name_classes = np.array(info['common_label'], dtype=np.str)
         mapping = np.array(info['city2common'], dtype=np.int)
     else:
+        # with open(join(devkit_dir, 'data', dset, 'info.json'), 'r') as fp:
+            # info = json.load(fp)
+        fp = open('/home/ajaytanwani/PycharmProjects/MCD_DA/segmentation/dataset/city_info.json', 'r')
+        info = json.load(fp)
         name_classes = np.array(info['label'], dtype=np.str)
         mapping = np.array(info['label2train'], dtype=np.int)  # Not use
 
@@ -236,32 +248,47 @@ def eval_city(gt_dir, pred_dir, devkit_dir='', dset='cityscapes', add_bg_loss=Fa
 
     print(name_classes)
     print("pred path: %s" % os.path.abspath(pred_dir))
+    # image_path_list = join(devkit_dir, 'data', dset, 'image.txt')
+    # label_path_list = join(devkit_dir, 'data', dset, 'label.txt')
+    for split in ['train', 'val']:
+        image_path_list = join(devkit_dir, split + '.txt')
+        label_path_list = join(devkit_dir, split + '_label.txt')
 
-    image_path_list = join(devkit_dir, 'data', dset, 'image.txt')
-    label_path_list = join(devkit_dir, 'data', dset, 'label.txt')
+        gt_imgs = open(label_path_list, 'rb').read().splitlines()
+        pred_imgs = open(image_path_list, 'rb').read().splitlines()
+        pred_imgs = [os.path.split(x)[-1] for x in pred_imgs]  # frankfurt/frank***.png -> frank***.png
 
-    gt_imgs = open(label_path_list, 'rb').read().splitlines()
-    pred_imgs = open(image_path_list, 'rb').read().splitlines()
-    pred_imgs = [os.path.split(x)[-1] for x in pred_imgs]  # frankfurt/frank***.png -> frank***.png
+        pred_fullpath_list = [os.path.join(pred_dir, pred_img) for pred_img in pred_imgs]
+        # import ipdb;
+        # ipdb.set_trace()
 
-    if is_label16:
-        gt_fullpath_list = [os.path.join(gt_dir, fn).replace('labelIds', 'label16IDs') for fn in gt_imgs]
-    else:
-        gt_fullpath_list = [os.path.join(gt_dir, fn).replace('labelIds', 'gtlabels') for fn in gt_imgs]
+        # if is_label16:
+        #     gt_fullpath_list = [os.path.join(gt_dir, fn).replace('labelIds', 'label16IDs') for fn in gt_imgs]
+        # else:
+        #     gt_fullpath_list = [os.path.join(gt_dir, fn).replace('labelIds', 'gtlabels') for fn in gt_imgs]
+        #
+        # pred_fullpath_list = [os.path.join(pred_dir, fn).replace('gtFine_labelIds', 'leftImg8bit') for fn in pred_imgs]
+        #
+        # calc_all_metrics(name_classes, pred_fullpath_list, gt_fullpath_list, consider_background_loss=add_bg_loss)
 
-    pred_fullpath_list = [os.path.join(pred_dir, fn).replace('gtFine_labelIds', 'leftImg8bit') for fn in pred_imgs]
-
-    calc_all_metrics(name_classes, pred_fullpath_list, gt_fullpath_list, consider_background_loss=add_bg_loss)
+        calc_all_metrics(name_classes, pred_fullpath_list, gt_imgs, consider_background_loss=add_bg_loss, out_dir=pred_dir+'/'+split, mapping_class_labels=mapping)
+        # gt_imgs.close()
+        # pred_img.close()
+        # pred_fullpath_list = []
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('dset', default='city', help='For the challenge use the validation set of cityscapes.',
-                        choices=['city', "city16", 'gta'])
+    parser.add_argument('dset', default='real_robot', help='For the challenge use the validation set of cityscapes.',
+                        choices=['city', "city16", 'gta', 'sim_robot', 'real_robot'])
     parser.add_argument('pred_dir', type=str, help='directory which stores CityScapes val pred images')
     parser.add_argument('--time', type=str, choices=["day", "night", "all"], default="all",
                         help="only available for ir dataset")
-    parser.add_argument('--devkit_dir', default='/data/ugui0/dataset/adaptation/taskcv-2017-public/segmentation',
+    # parser.add_argument('--devkit_dir', default='/data/ugui0/dataset/adaptation/taskcv-2017-public/segmentation',
+    #                     help='base directory of taskcv2017/segmentation')
+    # parser.add_argument('--devkit_dir', default='/home/ajaytanwani/datasets/cityscape_dataset_small/leftImg8bit',
+    #                     help='base directory of taskcv2017/segmentation')
+    parser.add_argument('--devkit_dir', default='/home/ajaytanwani/datasets/uncluttered+cluttered_polygon/',
                         help='base directory of taskcv2017/segmentation')
     parser.add_argument('--add_bg_loss', action="store_true",
                         help='whether you considered background loss when training')
@@ -269,14 +296,20 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.dset in ["city", "city16"]:
-        gt_dir = "/data/ugui0/ksaito/D_A/image_citiscape/www.cityscapes-dataset.com/file-handling/gtFine/val"
+        # gt_dir = "/data/ugui0/ksaito/D_A/image_citiscape/www.cityscapes-dataset.com/file-handling/gtFine/val"
+        # import ipdb; ipdb.set_trace()
+        gt_dir = "/home/ajaytanwani/datasets/cityscape_dataset_small/leftImg8bit/val"
         is_label16 = True if args.dset == "city16" else False
         eval_city(gt_dir, args.pred_dir, args.devkit_dir, "cityscapes", add_bg_loss=args.add_bg_loss,
                   is_label16=is_label16)
 
     elif args.dset == "gta":
-        gt_dir = "/data/ugui0/dataset/adaptation/taskcv-2017-public/segmentation/data/"
+        # gt_dir = "/data/ugui0/dataset/adaptation/taskcv-2017-public/segmentation/data/"
+        gt_dir = "/home/ajaytanwani/datasets/gta_dataset_small/images"
         eval_city(gt_dir, args.pred_dir, args.devkit_dir, "gta", add_bg_loss=args.add_bg_loss)
 
+    elif args.dset in ["sim_robot", "real_robot"]:
+        gt_dir = ""
+        eval_city(gt_dir, args.pred_dir, args.devkit_dir, "gta", add_bg_loss=args.add_bg_loss)
     else:
         NotImplementedError("Sorry... Only Cityscapes dataset is supported.")

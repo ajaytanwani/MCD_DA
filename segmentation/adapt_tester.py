@@ -19,7 +19,7 @@ from transform import Scale
 from util import mkdir_if_not_exist, save_dic_to_json, check_if_done
 
 parser = argparse.ArgumentParser(description='Adapt tester for validation data')
-parser.add_argument('tgt_dataset', type=str, choices=["gta", "city", "test", "ir", "city16"])
+parser.add_argument('tgt_dataset', type=str, choices=["gta", "city", "test", "ir", "city16", "sim_robot", "real_robot"])
 parser.add_argument('trained_checkpoint', type=str, metavar="PTH.TAR")
 parser.add_argument('--outdir', type=str, default="test_output",
                     help='output directory')
@@ -56,7 +56,7 @@ args.mode = "%s---%s-%s" % (trained_mode, args.tgt_dataset, args.split)
 model_name = infn.replace(".pth", "")
 if args.use_f2:
     model_name += "-use_f2"
-
+# import ipdb; ipdb.set_trace()
 print("=> loading checkpoint '{}'".format(args.trained_checkpoint))
 if not os.path.exists(args.trained_checkpoint):
     raise OSError("%s does not exist!" % args.trained_checkpoint)
@@ -85,8 +85,8 @@ img_transform = Compose([
     Scale(train_img_shape, Image.BILINEAR),
     ToTensor(),
     Normalize([.485, .456, .406], [.229, .224, .225]),
-
 ])
+
 label_transform = Compose([Scale(train_img_shape, Image.BILINEAR), ToTensor()])
 
 tgt_dataset = get_dataset(dataset_name=args.tgt_dataset, split=args.split, img_transform=img_transform,
