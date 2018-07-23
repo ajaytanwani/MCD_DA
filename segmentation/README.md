@@ -6,10 +6,10 @@
 CUDA_VISIBLE_DEVICES=0 python adapt_trainer.py sim_robot real_robot --net drn_d_105
 
 - test
-CUDA_VISIBLE_DEVICES=0 python adapt_tester.py ./train_output/sim_robot-train2real_robot-train_3ch/pth/MCD-normal-drn_d_105-10.pth.tar
+CUDA_VISIBLE_DEVICES=0 python adapt_tester.py real_robot ./train_output/sim_robot-train2real_robot-train_3ch/pth/MCD-normal-drn_d_105-10.pth.tar
 
 - eval
-CUDA_VISIBLE_DEVICES=0 python eval.py city ./test_output/sim_robot-train2real_robot-train_3ch---real_robot-val/MCD-normal-drn_d_105-10.tar/label
+CUDA_VISIBLE_DEVICES=0 python eval.py real_robot ./test_output/sim_robot-train2real_robot-train_3ch---real_robot-val/MCD-normal-drn_d_105-10.tar/label
 
 ## Datasets
 - "sim_robot": "/home/ajaytanwani/datasets/sim2real_datasets/dataset_07_05_2018_2/"
